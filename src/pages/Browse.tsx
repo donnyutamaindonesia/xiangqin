@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import MatchModal from '../components/MatchModal'
 
 interface Profile {
   id: string
@@ -13,14 +14,15 @@ interface Profile {
   bio: string
   photos: string[]
   rank?: string
+  tags?: string[]
 }
 
 interface Props {
   myId: string
   myGender: string
+  onGoMessages: () => void
 }
 
-// 占位背景图（按性别+序号确定，给没上传照片的用户）
 const FEMALE_PHOTOS = [
   'https://images.unsplash.com/photo-1494790108755-2616b612b977?w=600&q=80',
   'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&q=80',
@@ -37,23 +39,47 @@ const MALE_PHOTOS = [
 
 const RANK_COLOR: Record<string, string> = {
   '青铜': '#cd7f32', '白银': '#c0c0c0', '黄金': '#ffd700',
-  '铂金': '#e5e4e2', '钻石': '#b9f2ff', '黑金': '#1a1a1a',
+  '铂金': '#e5e4e2', '钻石': '#b9f2ff', '黑金': '#d4af37',
 }
 
-export default function Browse({ myId, myGender }: Props) {
+export default function Browse({ myId, myGender, onGoMessages }: Props) {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [index, setIndex] = useState(0)
   const [liked, setLiked] = useState(false)
   const [skipped, setSkipped] = useState(false)
+  const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const targetGender = myGender === 'male' ? 'female' : 'male'
-    supabase
-      .from('profiles')
-      .select('*')
-      .eq('gender', targetGender)
-      .neq('id', myId)
-      .then(({ data }) => setProfiles(data || []))
+    const load = async () => {
+      setLoading(true)
+      const targetGender = myGender === 'male' ? 'female' : 'male'
+
+      // 加载已 like 过的人
+      const { data: liked } = await supabase
+        .from('likes')
+        .select('to_user')
+        .eq('from_user', myId)
+
+      const likedIds = liked?.map(l => l.to_user) || []
+
+      // 查询未 like 过的对象
+      let query = supabase
+        .from('profiles')
+        .select('*')
+        .eq('gender', targetGender)
+        .neq('id', myId)
+
+      if (likedIds.length > 0) {
+        query = query.not('id', 'in', `(${likedIds.join(',')})`)
+      }
+
+      const { data } = await query
+      setProfiles(data || [])
+      setIndex(0)
+      setLoading(false)
+    }
+    load()
   }, [myId, myGender])
 
   const current = profiles[index]
@@ -66,15 +92,51 @@ export default function Browse({ myId, myGender }: Props) {
 
   const sendLike = async () => {
     if (!current) return
+
+    // 插入 like
     await supabase.from('likes').insert({ from_user: myId, to_user: current.id })
-    setLiked(true)
-    setTimeout(() => { setLiked(false); setIndex(i => i + 1) }, 700)
+
+    // 检测是否互相喜欢
+    const { data: mutual } = await supabase
+      .from('likes')
+      .select('id')
+      .eq('from_user', current.id)
+      .eq('to_user', myId)
+      .maybeSingle()
+
+    if (mutual) {
+      setMatchedProfile(current)
+    } else {
+      setLiked(true)
+      setTimeout(() => {
+        setLiked(false)
+        setIndex(i => i + 1)
+      }, 700)
+    }
   }
 
   const skip = () => {
     setSkipped(true)
-    setTimeout(() => { setSkipped(false); setIndex(i => i + 1) }, 400)
+    setTimeout(() => {
+      setSkipped(false)
+      setIndex(i => i + 1)
+    }, 380)
   }
+
+  const handleMatchClose = () => {
+    setMatchedProfile(null)
+    setLiked(true)
+    setTimeout(() => {
+      setLiked(false)
+      setIndex(i => i + 1)
+    }, 700)
+  }
+
+  if (loading) return (
+    <div className="empty-browse">
+      <div className="empty-icon" style={{ animation: 'float 1.5s ease-in-out infinite' }}>💎</div>
+    </div>
+  )
 
   if (!current) return (
     <div className="empty-browse">
@@ -89,35 +151,42 @@ export default function Browse({ myId, myGender }: Props) {
 
   return (
     <div className="browse-wrap">
+      {matchedProfile && (
+        <MatchModal
+          matched={matchedProfile}
+          onClose={handleMatchClose}
+          onMessage={() => { setMatchedProfile(null); onGoMessages() }}
+        />
+      )}
+
       <div className={`swipe-card ${liked ? 'anim-like' : ''} ${skipped ? 'anim-skip' : ''}`}>
-        {/* 全屏照片 */}
         <div className="swipe-photo" style={{ backgroundImage: `url(${photo})` }}>
-          {/* 顶部段位标 */}
           <div className="swipe-rank" style={{ color: RANK_COLOR[rank] || '#ffd700' }}>
             {rank}
           </div>
-
-          {/* 底部渐变信息层 */}
           <div className="swipe-overlay">
             <div className="swipe-name">
               {current.name}
               <span className="swipe-age">{current.age}岁</span>
             </div>
-            {current.occupation && (
-              <div className="swipe-occ">{current.occupation}</div>
-            )}
+            {current.occupation && <div className="swipe-occ">{current.occupation}</div>}
             <div className="swipe-tags">
               {current.height && <span>{current.height}cm</span>}
               {current.income && <span>{current.income}</span>}
               {current.housing && <span>{current.housing}</span>}
             </div>
-            {current.bio && (
-              <p className="swipe-bio">"{current.bio}"</p>
+            {/* 用户自定义标签 */}
+            {current.tags && current.tags.length > 0 && (
+              <div className="swipe-tags" style={{ marginTop: 4 }}>
+                {current.tags.slice(0, 2).map((t, i) => (
+                  <span key={i} style={{ fontSize: 11 }}>{t}</span>
+                ))}
+              </div>
             )}
+            {current.bio && <p className="swipe-bio">"{current.bio}"</p>}
           </div>
         </div>
 
-        {/* 操作按钮 */}
         <div className="swipe-actions">
           <button className="btn-skip" onClick={skip}>
             <span>✕</span>
@@ -130,7 +199,6 @@ export default function Browse({ myId, myGender }: Props) {
         </div>
       </div>
 
-      {/* 进度提示 */}
       <div className="browse-progress">
         {profiles.slice(0, 5).map((_, i) => (
           <div key={i} className={`progress-dot ${i === index ? 'active' : i < index ? 'done' : ''}`} />
