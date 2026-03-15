@@ -9,6 +9,14 @@ import './App.css'
 
 type Tab = 'browse' | 'messages' | 'restaurants' | 'profile'
 
+function getRankEmoji(rank: string) {
+  const map: Record<string, string> = {
+    '青铜': '🥉', '白银': '🥈', '黄金': '🥇',
+    '铂金': '💿', '钻石': '💎', '黑金': '🖤'
+  }
+  return map[rank] || '🥉'
+}
+
 export default function App() {
   const [userId, setUserId] = useState<string | null>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -47,7 +55,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="top-bar">
-        <div className="logo">💑 缘聚泉州</div>
+        <div className="logo">💎 芯约会</div>
         <button className="logout-btn" onClick={() => supabase.auth.signOut()}>退出</button>
       </header>
 
@@ -59,6 +67,9 @@ export default function App() {
           <div className="my-profile">
             <div className="profile-avatar">{profile.gender === 'female' ? '👩' : '👨'}</div>
             <h2>{profile.name}</h2>
+            <div className="rank-badge rank-{profile.rank || '青铜'}">
+              {getRankEmoji(profile.rank)} {profile.rank || '青铜'} · {profile.exp || 0} EXP
+            </div>
             <div className="profile-tags">
               <span>🎂 {profile.age}岁</span>
               {profile.occupation && <span>💼 {profile.occupation}</span>}
@@ -67,6 +78,10 @@ export default function App() {
               {profile.housing && <span>🏠 {profile.housing}</span>}
             </div>
             {profile.bio && <p className="profile-bio">"{profile.bio}"</p>}
+            <div className="rank-progress">
+              <p>约会次数：{profile.total_dates || 0} 次</p>
+              <p>累计消费：¥{profile.total_spend || 0}</p>
+            </div>
           </div>
         )}
       </main>

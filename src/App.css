@@ -476,6 +476,30 @@ body {
   font-size: 15px;
 }
 
+/* RANK */
+.rank-badge {
+  display: inline-block;
+  padding: 6px 18px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 8px 0 16px;
+  background: linear-gradient(135deg, #e8547a, #ff8fab);
+  color: white;
+}
+
+.rank-progress {
+  margin-top: 20px;
+  padding: 16px;
+  background: #fff0f4;
+  border-radius: 14px;
+  font-size: 14px;
+  color: #888;
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
 /* MY PROFILE */
 .my-profile { padding: 40px 20px; text-align: center; }
 .profile-avatar { font-size: 80px; margin-bottom: 16px; }

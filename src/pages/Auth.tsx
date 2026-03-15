@@ -24,9 +24,9 @@ export default function Auth() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">💑</div>
-        <h1>缘聚泉州</h1>
-        <p className="auth-sub">泉州本地认真相亲平台</p>
+        <div className="auth-logo">💎</div>
+        <h1>芯约会</h1>
+        <p className="auth-sub">认真约会 · 遇见真心</p>
 
         <div className="auth-tabs">
           <button className={isLogin ? 'active' : ''} onClick={() => setIsLogin(true)}>登录</button>
