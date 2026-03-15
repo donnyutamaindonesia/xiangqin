@@ -1,47 +1,60 @@
-const restaurants = [
-  {
-    id: 1,
-    name: '聚春园大酒店',
-    address: '泉州市鲤城区',
-    description: '泉州老字号，闽菜正宗，约会首选',
-    package: '双人约会套餐',
-    price: 288,
-    emoji: '🏮',
-    phone: '0595-12345678',
-  },
-  {
-    id: 2,
-    name: '源和堂文创园餐厅',
-    address: '泉州市丰泽区',
-    description: '文艺氛围，适合初次见面',
-    package: '浪漫双人套餐',
-    price: 198,
-    emoji: '🌿',
-    phone: '0595-87654321',
-  },
-  {
-    id: 3,
-    name: '西街印象茶馆',
-    address: '西街开元寺附近',
-    description: '传统闽南茶文化，轻松聊天',
-    package: '下午茶套餐',
-    price: 128,
-    emoji: '🍵',
-    phone: '0595-11112222',
-  },
-  {
-    id: 4,
-    name: '清源山景观餐厅',
-    address: '清源山风景区内',
-    description: '山景绝佳，浪漫气氛满分',
-    package: '山景双人套餐',
-    price: 258,
-    emoji: '⛰️',
-    phone: '0595-33334444',
-  },
-]
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+
+interface Restaurant {
+  id: string
+  name: string
+  address: string
+  description: string
+  phone: string
+  level: string
+  is_active: boolean
+  packages?: Package[]
+}
+
+interface Package {
+  id: string
+  name: string
+  price: number
+  description: string
+}
+
+const LEVEL_EMOJI: Record<string, string> = {
+  normal: '🍽️',
+  premium: '⭐',
+  michelin: '🌟',
+}
 
 export default function Restaurants() {
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      const { data: rests } = await supabase
+        .from('restaurants')
+        .select('*, packages(*)')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+
+      if (rests && rests.length > 0) {
+        setRestaurants(rests)
+      } else {
+        // 默认示例数据（未添加真实餐厅前显示）
+        setRestaurants([
+          { id: '1', name: '聚春园大酒店', address: '泉州市鲤城区', description: '泉州老字号，闽菜正宗，约会首选', phone: '0595-12345678', level: 'premium', is_active: true, packages: [{ id: '1', name: '双人约会套餐', price: 288, description: '含双人主菜+甜品+饮品' }] },
+          { id: '2', name: '源和堂文创园餐厅', address: '泉州市丰泽区', description: '文艺氛围，适合初次见面', phone: '0595-87654321', level: 'normal', is_active: true, packages: [{ id: '2', name: '浪漫双人套餐', price: 198, description: '轻食+咖啡+甜点' }] },
+          { id: '3', name: '西街印象茶馆', address: '西街开元寺附近', description: '传统闽南茶文化，轻松聊天', phone: '0595-11112222', level: 'normal', is_active: true, packages: [{ id: '3', name: '下午茶套餐', price: 128, description: '功夫茶+点心拼盘' }] },
+          { id: '4', name: '清源山景观餐厅', address: '清源山风景区内', description: '山景绝佳，浪漫气氛满分', phone: '0595-33334444', level: 'premium', is_active: true, packages: [{ id: '4', name: '山景双人套餐', price: 258, description: '景观位+双人套餐' }] },
+        ])
+      }
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) return <div className="empty-state">加载中...</div>
+
   return (
     <div className="restaurants-page">
       <div className="page-header">
@@ -52,17 +65,21 @@ export default function Restaurants() {
       <div className="restaurant-list">
         {restaurants.map(r => (
           <div key={r.id} className="restaurant-card">
-            <div className="restaurant-emoji">{r.emoji}</div>
+            <div className="restaurant-emoji">{LEVEL_EMOJI[r.level] || '🍽️'}</div>
             <div className="restaurant-info">
               <h3>{r.name}</h3>
               <p className="restaurant-addr">📍 {r.address}</p>
               <p className="restaurant-desc">{r.description}</p>
-              <div className="restaurant-package">
-                <span>🎁 {r.package}</span>
-                <span className="package-price">¥{r.price}/位</span>
-              </div>
+              {r.packages?.map(p => (
+                <div key={p.id} className="restaurant-package">
+                  <span>🎁 {p.name}</span>
+                  <span className="package-price">¥{p.price}/位</span>
+                </div>
+              ))}
             </div>
-            <a href={`tel:${r.phone}`} className="call-btn">📞 预订</a>
+            {r.phone && (
+              <a href={`tel:${r.phone}`} className="call-btn">📞 预订</a>
+            )}
           </div>
         ))}
       </div>
