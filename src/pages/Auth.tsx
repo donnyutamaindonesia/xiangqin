@@ -13,10 +13,10 @@ export default function Auth() {
     setError('')
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setError(error.message)
+      if (error) setError('邮箱或密码错误，请重试')
     } else {
       const { error } = await supabase.auth.signUp({ email, password })
-      if (error) setError(error.message)
+      if (error) setError('注册失败，请检查邮箱格式或稍后重试')
     }
     setLoading(false)
   }
