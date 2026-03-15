@@ -20,9 +20,9 @@ interface Package {
 }
 
 const LEVEL_EMOJI: Record<string, string> = {
-  normal: '🍽️',
-  premium: '⭐',
-  michelin: '🌟',
+  normal: '🍜',
+  premium: '🥂',
+  michelin: '⭐',
 }
 
 export default function Restaurants() {
@@ -40,7 +40,6 @@ export default function Restaurants() {
       if (rests && rests.length > 0) {
         setRestaurants(rests)
       } else {
-        // 默认示例数据（未添加真实餐厅前显示）
         setRestaurants([
           { id: '1', name: '聚春园大酒店', address: '泉州市鲤城区', description: '泉州老字号，闽菜正宗，约会首选', phone: '0595-12345678', level: 'premium', is_active: true, packages: [{ id: '1', name: '双人约会套餐', price: 288, description: '含双人主菜+甜品+饮品' }] },
           { id: '2', name: '源和堂文创园餐厅', address: '泉州市丰泽区', description: '文艺氛围，适合初次见面', phone: '0595-87654321', level: 'normal', is_active: true, packages: [{ id: '2', name: '浪漫双人套餐', price: 198, description: '轻食+咖啡+甜点' }] },
@@ -53,40 +52,50 @@ export default function Restaurants() {
     load()
   }, [])
 
-  if (loading) return <div className="empty-state">加载中...</div>
+  if (loading) return <div className="empty-browse" style={{ height: 'calc(100vh - 180px)' }}>加载中...</div>
 
   return (
     <div className="restaurants-page">
-      <div className="page-header">
-        <h2>🍽️ 约饭合作餐厅</h2>
-        <p>匹配成功？去这里见面，专属优惠套餐</p>
+      <div className="restaurants-hero">
+        <h2>约饭好去处</h2>
+        <p>匹配成功？这些餐厅为你们准备了专属套餐</p>
       </div>
 
       <div className="restaurant-list">
         {restaurants.map(r => (
           <div key={r.id} className="restaurant-card">
-            <div className="restaurant-emoji">{LEVEL_EMOJI[r.level] || '🍽️'}</div>
-            <div className="restaurant-info">
-              <h3>{r.name}</h3>
-              <p className="restaurant-addr">📍 {r.address}</p>
-              <p className="restaurant-desc">{r.description}</p>
-              {r.packages?.map(p => (
-                <div key={p.id} className="restaurant-package">
-                  <span>🎁 {p.name}</span>
-                  <span className="package-price">¥{p.price}/位</span>
-                </div>
-              ))}
+            <div className={`restaurant-cover ${r.level}`}>
+              <span>{LEVEL_EMOJI[r.level] || '🍽️'}</span>
             </div>
-            {r.phone && (
-              <a href={`tel:${r.phone}`} className="call-btn">📞 预订</a>
-            )}
+            <div className="restaurant-body">
+              <div className="restaurant-header">
+                <div className="restaurant-info">
+                  <h3>{r.name}</h3>
+                  <p className="restaurant-addr">📍 {r.address}</p>
+                </div>
+                {r.phone && (
+                  <a href={`tel:${r.phone}`} className="call-btn">预订</a>
+                )}
+              </div>
+              <p className="restaurant-desc">{r.description}</p>
+              {r.packages && r.packages.length > 0 && (
+                <div className="restaurant-packages">
+                  {r.packages.map(p => (
+                    <div key={p.id} className="restaurant-package">
+                      <span>🎁 {p.name}</span>
+                      <span className="package-price">¥{p.price}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
 
       <div className="partner-cta">
         <p>🤝 餐厅合作请联系我们</p>
-        <p style={{ fontSize: 13, color: '#aaa' }}>每成功促成一次约饭，平台获返佣 10%</p>
+        <p>每成功促成一次约饭，平台获返佣 10%</p>
       </div>
     </div>
   )
